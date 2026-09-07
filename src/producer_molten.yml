@@ -1,0 +1,25 @@
+schema_version: 0.3
+type: producer
+identifier: molten
+title: Molten Recording
+version: 1
+copyright: Pixelate It!
+license: MPL-2.0
+language: en
+tags:
+  - Video
+description: >
+  Plays back a Molten (.mltn) collaborative pixel canvas recording, rendering
+  the canvas' state at each frame's timestamp.
+parameters:
+  - identifier: resource
+    argument: yes
+    title: Recording
+    description: >
+      Path to a .mltn recording. A sidecar seek index (<resource>.idx), if
+      present beside it, is used to answer arbitrary timestamps quickly;
+      its absence only makes seeking slower, never wrong.
+    type: string
+    required: yes
+    readonly: no
+    widget: fileprop
