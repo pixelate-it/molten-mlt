@@ -163,11 +163,33 @@ mlt_producer producer_molten_init(mlt_profile profile,
         return NULL;
     }
 
-    MoltenSession *session = molten_session_open(arg);
+    /* Optional ?scale=N suffix on the resource itself, e.g.
+     * molten:season.mltn?scale=10 - the "scale" property (see
+     * producer_get_image) is not reliably editable through a host's UI for
+     * a producer type it doesn't recognise, but the resource/path field
+     * almost always is. Mirrors producer_framebuffer_init's own ?speed
+     * parsing in MLT's kdenlive module - strdup, split on the last '?',
+     * parse the copy, leave the original arg untouched. */
+    char *path = strdup(arg);
+    int scale = 1;
+    char *query = strrchr(path, '?');
+    if (query) {
+        *query++ = '\0';
+        char *eq = strstr(query, "scale=");
+        if (eq) {
+            scale = atoi(eq + 6);
+            if (scale < 1)
+                scale = 1;
+        }
+    }
+
+    MoltenSession *session = molten_session_open(path);
     if (!session) {
-        mlt_log_error(NULL, "molten: could not open recording '%s'\n", arg);
+        mlt_log_error(NULL, "molten: could not open recording '%s'\n", path);
+        free(path);
         return NULL;
     }
+    free(path);
 
     mlt_producer producer = calloc(1, sizeof(struct mlt_producer_s));
     if (!producer || mlt_producer_init(producer, NULL) != 0) {
@@ -182,7 +204,7 @@ mlt_producer producer_molten_init(mlt_profile profile,
      * handle and (maybe) a loaded seek index. */
     mlt_properties_set_data(properties, "molten_session", session, 0, NULL, NULL);
     mlt_properties_set(properties, "resource", arg);
-    mlt_properties_set_int(properties, "scale", 1);
+    mlt_properties_set_int(properties, "scale", scale);
 
     uint64_t duration_ms = 0;
     if (molten_session_duration_ms(session, &duration_ms) == MOLTEN_STATUS_OK) {
