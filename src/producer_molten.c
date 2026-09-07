@@ -56,18 +56,36 @@ static int producer_get_image(mlt_frame frame,
         return 1;
     }
 
+    /* Whole-number nearest-neighbour magnification, same semantic as
+     * molten's own CLI `-scale` - a canvas is pixel art, and smooth
+     * interpolation would blur the one thing worth keeping sharp. Clamped
+     * to >= 1 here rather than trusted, since this property is directly
+     * user-editable. */
+    int scale = mlt_properties_get_int(properties, "scale");
+    if (scale < 1)
+        scale = 1;
+
     *format = mlt_image_rgba;
-    *width = (int) out_width;
-    *height = (int) out_height;
+    *width = (int) out_width * scale;
+    *height = (int) out_height * scale;
 
     int size = (*width) * (*height) * 4;
     int alpha_size = (*width) * (*height);
 
     /* molten_session_render_at's buffer belongs to the session and is only
-     * valid until the next call that touches it - copy immediately, per
-     * its own doc comment. */
+     * valid until the next call that touches it - copy (and, here, expand)
+     * immediately, per its own doc comment. */
     uint8_t *image = mlt_pool_alloc(size);
-    memcpy(image, out_ptr, size);
+    if (scale == 1) {
+        memcpy(image, out_ptr, size);
+    } else {
+        for (int y = 0; y < *height; y++) {
+            const uint8_t *src_row = out_ptr + (size_t) (y / scale) * out_width * 4;
+            uint8_t *dst_row = image + (size_t) y * (*width) * 4;
+            for (int x = 0; x < *width; x++)
+                memcpy(dst_row + (size_t) x * 4, src_row + (size_t) (x / scale) * 4, 4);
+        }
+    }
 
     /* The canvas is always fully opaque - see molten-ffi's own
      * MoltenPixel/State: nothing here ever produces a transparent pixel. */
@@ -164,6 +182,7 @@ mlt_producer producer_molten_init(mlt_profile profile,
      * handle and (maybe) a loaded seek index. */
     mlt_properties_set_data(properties, "molten_session", session, 0, NULL, NULL);
     mlt_properties_set(properties, "resource", arg);
+    mlt_properties_set_int(properties, "scale", 1);
 
     uint64_t duration_ms = 0;
     if (molten_session_duration_ms(session, &duration_ms) == MOLTEN_STATUS_OK) {

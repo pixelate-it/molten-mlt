@@ -23,3 +23,15 @@ parameters:
     required: yes
     readonly: no
     widget: fileprop
+
+  - identifier: scale
+    title: Scale
+    description: >
+      Whole-number nearest-neighbour magnification, matching molten's own
+      CLI -scale flag - a canvas is pixel art, so this never blurs it the
+      way smooth interpolation would. 1 (no scaling) if unset.
+    type: integer
+    minimum: 1
+    default: 1
+    mutable: yes
+    readonly: no

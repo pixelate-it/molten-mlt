@@ -81,6 +81,39 @@ A resize mid-recording is a new segment, not a mid-clip frame-size change
 timeline at each resize the same way `molten render`'s CLI numbers its output
 files, one `molten:` producer per window.
 
+### `scale`
+
+Whole-number nearest-neighbour magnification, e.g. `<property
+name="scale">10</property>` in XML - the same semantic as molten's own CLI
+`-scale`. A canvas is pixel art; this exists so blowing a small season up to
+a normal video resolution doesn't blur it through smooth interpolation the
+way scaling in the timeline/output profile would. Defaults to `1`.
+
+### Adding `.mltn` to Kdenlive's "Add Clip" without an `.mlt` wrapper
+
+Kdenlive's own file-add dialog doesn't know `.mltn` is ours, so a bare path
+(no `molten:` prefix) gets handed to MLT with no `mlt_service` set, and MLT's
+own producer auto-detection (`producer_loader`, matching by file extension
+against `$MLT_DATA/core/loader.dict`) has no entry for it either - it falls
+through to guessing (`avformat`, which fails). `molten:<path>` always works
+regardless, from `melt`'s command line or a hand-written `.mlt`, but if you
+want a bare `.mltn` to work directly in Add Clip too, add one line to that
+dictionary (a plain-text `pattern=service` file, one per line, first match
+wins):
+
+```
+*.mltn=molten
+```
+
+**Order matters**: this line must come *before* the generic `*=avformat`
+fallback near the end of the file, not after it - `fnmatch` is checked top to
+bottom and the first pattern that matches wins, so a specific pattern placed
+after a catch-all is dead code. This isn't automated by `cmake --install`
+(it would mean patching a file `mlt` itself owns, which felt like too
+surprising a side effect for an install step) - it's a one-line manual edit
+to `<MLT_DATA>/core/loader.dict`, wherever your MLT installation's data
+directory is.
+
 ## License
 
 MPL-2.0, matching [pixelate-it/molten](https://github.com/pixelate-it/molten).

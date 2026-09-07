@@ -19,6 +19,9 @@ extern mlt_producer producer_molten_init(mlt_profile profile,
 
 static mlt_properties metadata(mlt_service_type type, const char *id, void *data)
 {
+    (void) type;
+    (void) id;
+
     char file[PATH_MAX];
     snprintf(file, PATH_MAX, "%s/molten/%s", mlt_environment("MLT_DATA"), (char *) data);
     return mlt_properties_parse_yaml(file);
